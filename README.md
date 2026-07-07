@@ -3,7 +3,7 @@
 A governed, read-only, multi-agent advisor that guides Walmart executives and
 technology professionals through adopting enterprise AI agents *the right way*
 — grounded in the Google × Kaggle 5-Day Agentic Engineering program and a
-Walmart strategic brief. **The agent is built the way it teaches you to
+Walmart strategic brief I created based on the white papers shared in the program. **The agent is built the way it teaches you to
 build:** skills library, read/draft/act tier enforcement, evaluation-driven
 development, token circuit breaker, MCP tooling, ADK multi-agent orchestration.
 
@@ -31,6 +31,7 @@ User ──▶ FastAPI (rate limit + daily circuit breaker)
   routing-accuracy requirement).
 - **Zero ambient authority:** no action tools exist anywhere in this codebase.
   The read-only tier is enforced by capability absence, not by prompt.
+- A pre-built index is included; the corpus PDFs are only needed if you want to rebuild it.
 
 ## Quickstart (local)
 
