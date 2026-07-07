@@ -1,0 +1,7 @@
+google-adk>=1.0.0
+pypdf>=4.0.0
+fastapi>=0.110.0
+uvicorn>=0.29.0
+google-genai>=1.0.0
+# Optional: standalone MCP server demo (needs Python >= 3.10)
+# fastmcp>=2.0.0
