@@ -10,13 +10,26 @@ development, token circuit breaker, MCP tooling, ADK multi-agent orchestration.
 > Independent capstone project for the Kaggle "AI Agents: Intensive Vibe
 > Coding" Capstone (Agents for Business track). Not affiliated with Walmart Inc.
 
+![tests](https://github.com/Ai-Prince-1/-walmart-agentic-compass/actions/workflows/tests.yml/badge.svg)
+
+## What this demonstrates
+
+| Skill | Where |
+|---|---|
+| Multi-agent orchestration (Google ADK): one router, three specialists | `compass/agent.py` |
+| Tool design + MCP server (FastMCP, stdio) | `mcp_server/server.py` |
+| Governance by architecture: read-only tools only, fail-closed scorecard | `mcp_server/server.py`, `compass/guardrails.py` |
+| Cost controls: per-visitor rate limit + daily request cap | `main.py` |
+| Evaluation-driven development: trajectory checks + position-swapped LLM judge | `evals/` |
+| Automated tests that run without an API key (CI on every push) | `tests/`, `.github/workflows/tests.yml` |
+
 ## Architecture
 
 ```
 User ──▶ FastAPI (rate limit + daily circuit breaker)
               │ SSE
               ▼
-     compass_orchestrator (ADK, gemini-2.5-flash)   ← guardrail tripwire on every agent
+     compass_orchestrator (ADK, gemini-2.5-flash-lite)   ← guardrail tripwire on every agent
        ├── curriculum_mentor    ── search_corpus ──┐
        ├── strategy_advisor     ── search_corpus ──┤── corpus_index/chunks.json
        └── governance_auditor   ── readiness_scorecard  (deterministic ladder logic)
@@ -31,17 +44,25 @@ User ──▶ FastAPI (rate limit + daily circuit breaker)
   routing-accuracy requirement).
 - **Zero ambient authority:** no action tools exist anywhere in this codebase.
   The read-only tier is enforced by capability absence, not by prompt.
-- A pre-built index is included; the corpus PDFs are only needed if you want to rebuild it.
+- A pre-built index (`corpus_index/chunks.json`) is included, so the app runs
+  without the PDFs. You only need them to rebuild the index.
 
 ## Quickstart (local)
 
 ```bash
 pip install -r requirements.txt
-# 1. Put the 6 source PDFs into corpus/  (Day 1–4 whitepapers + Walmart brief + capstone doc)
-python scripts/build_index.py           # ~30s, writes corpus_index/chunks.json
-# 2. Run
 export GOOGLE_API_KEY=your_ai_studio_key   # free tier works
-python main.py                          # open http://localhost:8080
+python main.py                             # open http://localhost:8080
+```
+
+Optional: to rebuild the search index, add the course PDFs to `corpus/`
+(see `corpus/README.md`) and run `python scripts/build_index.py` (~30s).
+
+## Tests (no API key needed)
+
+```bash
+pip install -r requirements-dev.txt
+pytest -q          # corpus search, scorecard, guardrails, rate limits, web app
 ```
 
 ## Evaluation (Evaluation-Driven Development)
@@ -99,5 +120,10 @@ rate limit + global daily cap) — the token-spend ceiling this agent teaches
   observability signal — Day 4 is explicit that static filters are not a
   perimeter. The perimeter here is architectural: no action tools exist.
 - **Sessions:** in-memory; reset on Cloud Run cold starts. Fine for a demo.
-- **Corpus files:** not committed (size/licensing); add the PDFs locally and
-  run the indexer.
+- **Corpus files:** the course whitepaper PDFs are not committed; add them
+  locally to rebuild the index. The committed index does contain text
+  extracted from them so the demo runs out of the box. The strategic brief
+  PDF (my own document) is committed.
+- **Guardrail false positives:** the secrets pattern also trips on honest
+  questions that mention "credentials" or "API keys". It's a deliberate
+  over-block for a public demo.

@@ -37,7 +37,7 @@ guardrail_state = {"trips": 0, "last_trip": None}
 
 
 def _log(kind: str, snippet: str):
-    ts = datetime.datetime.utcnow().isoformat()
+    ts = datetime.datetime.now(datetime.timezone.utc).isoformat()
     guardrail_state["trips"] += 1
     guardrail_state["last_trip"] = ts
     # Pillar 7: audit trail — every screened event is logged with timestamp
