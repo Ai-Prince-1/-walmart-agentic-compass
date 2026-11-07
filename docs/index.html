@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agentic Compass: a governed AI advisor for enterprise agent adoption</title>
+<meta name="description" content="A read-only, multi-agent advisor that helps retail leaders decide whether and how to deploy AI agents. Kaggle capstone built with Google ADK, MCP and Gemini.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:wght@500;600&display=swap" rel="stylesheet">
+<script src="config.js"></script>
+<style>
+:root{
+  --paper:#F4F6F8; --card:#FFFFFF; --ink:#17212B; --muted:#526170; --line:#D6DEE6;
+  --blue:#1F4FD1; --needle:#C8372D; --go:#1F7A4D; --cond:#9A6A12; --no:#B4332A;
+  --serif:"IBM Plex Serif",Georgia,serif; --sans:"IBM Plex Sans",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font:400 17px/1.6 var(--sans)}
+a{color:var(--blue)}
+a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible,label:focus-within{outline:3px solid var(--blue);outline-offset:2px}
+.wrap{max-width:1120px;margin:0 auto;padding:0 24px}
+header.top{display:flex;justify-content:space-between;align-items:center;padding:20px 0;font-size:15px}
+header.top b{font-family:var(--serif);font-size:18px;letter-spacing:.01em}
+header.top nav a{margin-left:20px;color:var(--ink);text-decoration:none}
+header.top nav a:hover{text-decoration:underline}
+
+.hero{display:grid;grid-template-columns:1.05fr 1fr;gap:56px;align-items:start;padding:48px 0 72px}
+h1{font:600 clamp(36px,5vw,58px)/1.05 var(--serif);margin:0 0 20px;letter-spacing:-.01em}
+.lede{font-size:20px;color:var(--muted);max-width:34ch;margin:0 0 28px}
+.actions{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.btn{display:inline-block;font:600 16px var(--sans);padding:13px 20px;border-radius:6px;text-decoration:none;border:1.5px solid var(--ink);color:var(--ink);background:transparent;cursor:pointer}
+.btn.primary{background:var(--ink);color:#fff}
+.btn.primary:hover{background:var(--blue);border-color:var(--blue)}
+.btn[aria-disabled=true]{opacity:.45;pointer-events:none}
+.live-note{font-size:14px;color:var(--muted);margin-top:14px;max-width:44ch}
+.facts{display:flex;gap:28px;margin-top:40px;padding-top:24px;border-top:1px solid var(--line);font-size:15px;color:var(--muted)}
+.facts strong{display:block;font:600 22px var(--serif);color:var(--ink)}
+
+/* Scorecard: the one interactive moment */
+.scorecard{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:28px}
+.scorecard h2{font:600 22px var(--serif);margin:0 0 4px}
+.scorecard p.sub{margin:0 0 20px;color:var(--muted);font-size:15px}
+.field{margin-bottom:16px}
+.field > span,.field > label > span{display:block;font-weight:600;font-size:14px;margin-bottom:6px}
+.seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg label{flex:1;text-align:center;font-size:14px;padding:9px 4px;cursor:pointer;border-left:1px solid var(--line);user-select:none}
+.seg label:first-child{border-left:0}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg label:has(input:checked){background:var(--ink);color:#fff}
+select{width:100%;font:15px var(--sans);padding:9px 10px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink)}
+.check{display:flex;gap:10px;align-items:center;font-size:15px}
+.check input{width:18px;height:18px;accent-color:var(--ink)}
+.result{display:grid;grid-template-columns:150px 1fr;gap:20px;align-items:center;margin-top:22px;padding-top:20px;border-top:1px solid var(--line)}
+.dial{width:150px;height:150px}
+#needle{transform-origin:75px 75px;transition:transform .6s cubic-bezier(.3,1.4,.5,1)}
+@media (prefers-reduced-motion:reduce){#needle{transition:none}}
+.verdict{font:600 24px var(--serif);margin:0}
+.verdict.GO{color:var(--go)} .verdict.GO-WITH-CONDITIONS{color:var(--cond)} .verdict.NOT-YET{color:var(--no)}
+.score{color:var(--muted);font-size:15px;margin:2px 0 0}
+.details{margin-top:16px;font-size:15px}
+.details h3{font-size:14px;margin:14px 0 6px}
+.details ul{margin:0;padding-left:20px}
+.details li{margin-bottom:4px}
+
+section.band{padding:72px 0;border-top:1px solid var(--line)}
+section.band h2{font:600 32px/1.15 var(--serif);margin:0 0 12px}
+section.band .intro{color:var(--muted);max-width:60ch;margin:0 0 36px}
+.layers{display:grid;grid-template-columns:repeat(3,1fr);gap:0;border:1px solid var(--line);border-radius:14px;background:var(--card);overflow:hidden}
+.layer{padding:28px;border-left:1px solid var(--line)}
+.layer:first-child{border-left:0}
+.layer h3{font:600 20px var(--serif);margin:0 0 6px}
+.layer .what{font-weight:600;font-size:15px;margin:0 0 10px;color:var(--blue)}
+.layer p{margin:0;font-size:16px;color:var(--muted)}
+.flow{font-size:15px;color:var(--muted);margin-top:18px}
+
+.team{display:grid;grid-template-columns:1.2fr 1fr 1fr 1fr;gap:28px}
+.team div h3{font:600 19px var(--serif);margin:0 0 6px}
+.team div p{margin:0;color:var(--muted);font-size:16px}
+.team .lead{padding-right:28px;border-right:1px solid var(--line)}
+
+.rules{columns:2;column-gap:56px;max-width:900px;padding:0;margin:0;list-style:none}
+.rules li{break-inside:avoid;margin-bottom:22px}
+.rules b{display:block;font-family:var(--serif);font-size:19px;margin-bottom:2px}
+.rules span{color:var(--muted)}
+
+footer{padding:40px 0 56px;border-top:1px solid var(--line);font-size:14px;color:var(--muted)}
+footer p{margin:4px 0;max-width:80ch}
+
+@media (max-width:900px){
+  .hero{grid-template-columns:1fr;gap:40px;padding-top:24px}
+  .layers{grid-template-columns:1fr}.layer{border-left:0;border-top:1px solid var(--line)}.layer:first-child{border-top:0}
+  .team{grid-template-columns:1fr 1fr}.team .lead{grid-column:1/-1;border-right:0;padding-right:0}
+  .rules{columns:1}
+}
+@media (max-width:520px){
+  body{font-size:16px}.facts{gap:18px;flex-wrap:wrap}.result{grid-template-columns:1fr;justify-items:start}
+  header.top nav a:not(:last-child){display:none}.team{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <b>Agentic Compass</b>
+    <nav><a href="#how">How it works</a><a href="#team">The agents</a><a href="https://github.com/Ai-Prince-1/-walmart-agentic-compass">Source on GitHub</a></nav>
+  </header>
+
+  <main>
+  <section class="hero">
+    <div>
+      <h1>Know which AI agents are safe to ship before you build them.</h1>
+      <p class="lede">A read-only advisor that helps retail leaders learn agentic AI, size a use case and audit its governance. It's built under the same rules it teaches.</p>
+      <div class="actions">
+        <a class="btn primary" id="liveBtn" href="#" aria-disabled="true">Talk to the live agent</a>
+        <a class="btn" href="https://github.com/Ai-Prince-1/-walmart-agentic-compass">Read the code</a>
+      </div>
+      <p class="live-note" id="liveNote">The live agent is offline right now. The scorecard on this page runs the agent's real governance rules in your browser.</p>
+      <div class="facts">
+        <div><strong>4 agents</strong>1 router, 3 specialists</div>
+        <div><strong>0 write tools</strong>read-only by design</div>
+        <div><strong>13 tests</strong>run on every change</div>
+      </div>
+    </div>
+
+    <form class="scorecard" id="sc" aria-labelledby="sc-title" onsubmit="return false">
+      <h2 id="sc-title">Try the readiness scorecard</h2>
+      <p class="sub">The same rules the governance auditor agent uses. Describe a proposed agent:</p>
+
+      <div class="field"><span id="l-tier">What may the agent do?</span>
+        <div class="seg" role="radiogroup" aria-labelledby="l-tier">
+          <label><input type="radio" name="tier" value="read_only">Read</label>
+          <label><input type="radio" name="tier" value="draft_only" checked>Draft</label>
+          <label><input type="radio" name="tier" value="action_allowed">Act</label>
+        </div>
+      </div>
+      <div class="field"><label for="oversight"><span>Human oversight</span></label>
+        <select id="oversight">
+          <option value="none">None</option>
+          <option value="spot_check">Spot checks</option>
+          <option value="review_queue" selected>Review queue</option>
+          <option value="approval_gate">Approval before every action</option>
+        </select>
+      </div>
+      <div class="field"><label for="sens"><span>Data it touches</span></label>
+        <select id="sens">
+          <option value="public">Public information</option>
+          <option value="internal" selected>Internal business data</option>
+          <option value="financial">Payments or financial</option>
+          <option value="pharmacy">Pharmacy or health</option>
+          <option value="food">Food safety</option>
+        </select>
+      </div>
+      <label class="check"><input type="checkbox" id="budget" checked> A token spend budget and hard ceiling are defined</label>
+
+      <div class="result" aria-live="polite">
+        <svg class="dial" viewBox="0 0 150 150" role="img" aria-labelledby="dialTitle">
+          <title id="dialTitle">Compass dial showing the readiness score</title>
+          <circle cx="75" cy="75" r="68" fill="none" stroke="#D6DEE6" stroke-width="2"/>
+          <path d="M 21.3 106.0 A 62 62 0 0 1 83.6 13.6" fill="none" stroke="#B4332A" stroke-width="6" stroke-linecap="round"/>
+          <path d="M 92.1 15.4 A 62 62 0 0 1 132.5 51.8" fill="none" stroke="#9A6A12" stroke-width="6" stroke-linecap="round"/>
+          <path d="M 135.2 60.0 A 62 62 0 0 1 128.7 106.0" fill="none" stroke="#1F7A4D" stroke-width="6" stroke-linecap="round"/>
+          <g id="needle">
+            <polygon points="75,20 81,75 75,82 69,75" fill="#C8372D"/>
+            <polygon points="75,130 81,75 75,82 69,75" fill="#17212B"/>
+          </g>
+          <circle cx="75" cy="75" r="5" fill="#fff" stroke="#17212B" stroke-width="2"/>
+        </svg>
+        <div>
+          <p class="verdict" id="verdict">—</p>
+          <p class="score" id="score"></p>
+        </div>
+      </div>
+      <div class="details" id="details"></div>
+    </form>
+  </section>
+
+  <section class="band" id="how">
+    <h2>How it works</h2>
+    <p class="intro">Three layers. The page you're reading is the showcase; the agent itself runs on a small server that wakes up only when someone uses it.</p>
+    <div class="layers">
+      <div class="layer">
+        <h3>Knowledge</h3>
+        <p class="what">What the agents know</p>
+        <p>A searchable index of the Google × Kaggle agent-engineering whitepapers and a retail strategy brief. Every answer cites its source and page.</p>
+      </div>
+      <div class="layer">
+        <h3>Reasoning</h3>
+        <p class="what">Where the thinking happens</p>
+        <p>Python on Google's Agent Development Kit, with Gemini 2.5 Flash-Lite as the model. A router hands each question to a specialist, and tools are served over the Model Context Protocol (MCP).</p>
+      </div>
+      <div class="layer">
+        <h3>Interface</h3>
+        <p class="what">What people see</p>
+        <p>A chat page served by the same app on Google Cloud Run. It scales to zero when idle and is capped at one instance. This showcase page is hosted free on GitHub Pages.</p>
+      </div>
+    </div>
+    <p class="flow">The API key lives in Google Secret Manager, never in the code or in your browser. A rate limit, a daily request cap and an optional demo passcode keep the free quota safe.</p>
+  </section>
+
+  <section class="band" id="team">
+    <h2>The agents</h2>
+    <p class="intro">Each specialist is defined by a versioned skill file with examples of when it should and shouldn't take a question.</p>
+    <div class="team">
+      <div class="lead"><h3>Orchestrator</h3><p>Reads the question and routes it to the right specialist. It never answers from its own head, which keeps every reply grounded and attributable.</p></div>
+      <div><h3>Curriculum mentor</h3><p>Explains agent-engineering concepts from the course material, with citations.</p></div>
+      <div><h3>Strategy advisor</h3><p>Maps a use case to business moats and returns a 90-day plan.</p></div>
+      <div><h3>Governance auditor</h3><p>Runs the readiness scorecard above and lists the approvals required.</p></div>
+    </div>
+  </section>
+
+  <section class="band">
+    <h2>Guardrails by design</h2>
+    <p class="intro">The rules are enforced by how the system is built, not by asking the model to behave.</p>
+    <ul class="rules">
+      <li><b>No write access</b><span>The agents have search and scoring tools only. There is nothing they could change even if told to.</span></li>
+      <li><b>Fail closed</b><span>An unknown permission level is scored as the riskiest one.</span></li>
+      <li><b>Input tripwire</b><span>Prompt-injection attempts and requests for internal data are blocked before reaching the model.</span></li>
+      <li><b>Cost circuit breaker</b><span>Per-visitor limits and a daily cap stop runaway spend.</span></li>
+      <li><b>Tested on every change</b><span>13 automated tests that run without an API key, plus trajectory evals with a position-swapped LLM judge.</span></li>
+      <li><b>Checked monthly</b><span>A scheduled job wakes the live agent and confirms the key still works, so a demo never starts with a surprise.</span></li>
+    </ul>
+  </section>
+  </main>
+
+  <footer>
+    <p>Independent capstone for the Kaggle "AI Agents: Intensive Vibe Coding" course (Agents for Business track). Not affiliated with or endorsed by Walmart Inc. or Google.</p>
+    <p>Code under the MIT license. <a href="https://github.com/Ai-Prince-1/-walmart-agentic-compass">github.com/Ai-Prince-1/-walmart-agentic-compass</a></p>
+  </footer>
+</div>
+
+<script>
+// Port of readiness_scorecard() in mcp_server/server.py. Keep the two in sync.
+const REQUIRED_APPROVALS = {
+  read_only: ["Domain team approval"],
+  draft_only: ["Domain team approval", "Format owner approval"],
+  action_allowed: ["Domain team approval", "Security/compliance review", "Executive sign-off",
+    "Named human owner with escalation authority", "Real-time behavioral monitoring + circuit breaker"]
+};
+const HIGH_CONSEQUENCE = ["pharmacy", "food", "financial", "payment", "health", "medical"];
+
+function readinessScorecard(sens, tier, oversight, budget) {
+  if (!(tier in REQUIRED_APPROVALS)) tier = "action_allowed";
+  let score = 100; const flags = [];
+  if (!budget) { score -= 25; flags.push("No token spend baseline or hard ceiling. At transaction scale, costs compound. Set both before any pilot."); }
+  if (tier === "action_allowed" && (oversight === "none" || oversight === "spot_check")) {
+    score -= 35; flags.push("An agent that can act needs an approval gate, a named human owner and automatic shut-off if its behavior drifts.");
+  }
+  if (HIGH_CONSEQUENCE.some(w => sens.includes(w))) { score -= 20; flags.push("Financial, food-safety and pharmacy work needs real-time behavioral monitoring before production."); }
+  if (tier === "draft_only" && oversight === "none") { score -= 15; flags.push("Drafts with no human review defeat the purpose of the draft tier."); }
+  const verdict = score >= 80 ? "GO" : score >= 55 ? "GO-WITH-CONDITIONS" : "NOT-YET";
+  return { score: Math.max(score, 0), verdict, approvals: REQUIRED_APPROVALS[tier],
+           flags: flags.length ? flags : ["No blocking flags. Proceed with the standard approval chain."] };
+}
+
+const LABEL = { "GO": "Go", "GO-WITH-CONDITIONS": "Go, with conditions", "NOT-YET": "Not yet" };
+const esc = s => s.replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+
+function update() {
+  const f = document.getElementById("sc");
+  const r = readinessScorecard(f.sens.value, f.tier.value, f.oversight.value, f.budget.checked);
+  const v = document.getElementById("verdict");
+  v.textContent = LABEL[r.verdict]; v.className = "verdict " + r.verdict;
+  document.getElementById("score").textContent = "Readiness score " + r.score + " of 100";
+  document.getElementById("needle").style.transform = "rotate(" + (-120 + r.score * 2.4) + "deg)";
+  document.getElementById("details").innerHTML =
+    "<h3>Why</h3><ul>" + r.flags.map(x => "<li>" + esc(x) + "</li>").join("") + "</ul>" +
+    "<h3>Approvals required</h3><ul>" + r.approvals.map(x => "<li>" + esc(x) + "</li>").join("") + "</ul>";
+}
+document.getElementById("sc").addEventListener("input", update);
+document.getElementById("sc").addEventListener("change", update);
+update();
+
+// Live demo button
+const live = (window.COMPASS_LIVE_URL || "").trim();
+if (live) {
+  const b = document.getElementById("liveBtn");
+  b.href = live; b.removeAttribute("aria-disabled"); b.target = "_blank"; b.rel = "noopener";
+  document.getElementById("liveNote").textContent =
+    "Runs on Google Cloud Run. If it has been idle, the first reply takes a few extra seconds while it wakes up. You may be asked for a demo passcode.";
+}
+</script>
+</body>
+</html>

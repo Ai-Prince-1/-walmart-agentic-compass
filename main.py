@@ -7,6 +7,7 @@ start — acceptable for a demo; production would use a session service.
 """
 import asyncio
 import datetime
+import hmac
 import json
 import os
 import time
@@ -26,6 +27,9 @@ from compass.guardrails import guardrail_state
 
 APP_NAME = "walmart-agentic-compass"
 DAILY_CAP = int(os.environ.get("DAILY_REQUEST_CAP", "300"))
+# Optional demo passcode. When set (e.g. on Cloud Run), only visitors who
+# enter it can use /chat, so strangers can't spend the API quota.
+DEMO_PASSCODE = os.environ.get("DEMO_PASSCODE", "").strip()
 PER_IP_PER_MIN = 10
 
 app = FastAPI(title=APP_NAME)
@@ -84,6 +88,11 @@ async def chat(request: Request):
     message = (body.get("message") or "").strip()[:4000]
     session_id = body.get("session_id")
     ip = request.client.host if request.client else "unknown"
+
+    if DEMO_PASSCODE and not hmac.compare_digest(
+        request.headers.get("x-demo-passcode", "").strip(), DEMO_PASSCODE
+    ):
+        return JSONResponse({"error": "passcode_required"}, status_code=401)
 
     blocked = circuit_breaker(ip)
     if blocked:

@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Walmart Agentic Compass</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.6/purify.min.js"></script>
 <style>
   :root{
     --blue:#0053E2; --blue-deep:#00338A; --spark:#FFC220;
@@ -78,6 +79,8 @@ const log = document.getElementById('log');
 let sessionId = null, busy = false;
 const AGENT_LABELS = {compass_orchestrator:'🧭 orchestrator', curriculum_mentor:'📚 curriculum mentor', strategy_advisor:'📈 strategy advisor', governance_auditor:'🛡️ governance auditor'};
 
+const clean=(h)=>(window.DOMPurify?DOMPurify.sanitize(h):h); // sanitize model/user markdown before innerHTML
+const md=(t)=>clean(marked.parse(t)), mdi=(t)=>clean(marked.parseInline(t));
 function el(cls, html){const d=document.createElement('div');d.className=cls;d.innerHTML=html;log.appendChild(d);log.scrollTop=log.scrollHeight;return d;}
 function preset(t){document.getElementById('box').value=t;send();}
 
@@ -96,11 +99,16 @@ async function send(){
   const box=document.getElementById('box'); const text=box.value.trim();
   if(!text) return;
   box.value=''; busy=true; document.getElementById('sendbtn').disabled=true;
-  el('msg user', marked.parseInline(text));
+  el('msg user', mdi(text));
   const typing=el('typing','Consulting the corpus…');
   let badge=null, bubble=null, buffer='';
   try{
-    const resp=await fetch('/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:text,session_id:sessionId})});
+    let resp=await postChat(text);
+    if(resp.status===401){
+      const code=window.prompt('This demo is passcode-protected. Enter the passcode you were given:');
+      if(code){try{sessionStorage.setItem('compass_pass',code.trim())}catch(e){} resp=await postChat(text);}
+      if(resp.status===401){typing.remove();el('msg bot','🔒 A valid demo passcode is needed to chat. Ask the project owner for one.');try{sessionStorage.removeItem('compass_pass')}catch(e){} finish();return;}
+    }
     if(resp.status===429){const j=await resp.json();typing.remove();el('msg bot','⚡ '+j.error);finish();return;}
     const reader=resp.body.getReader(); const dec=new TextDecoder(); let carry='';
     while(true){
@@ -119,7 +127,7 @@ async function send(){
           typing.remove?.();
           buffer+=ev.text;
           if(!bubble)bubble=el('msg bot','');
-          bubble.innerHTML=marked.parse(buffer);
+          bubble.innerHTML=md(buffer);
           log.scrollTop=log.scrollHeight;
         }
         if(ev.type==='error'){typing.remove?.();el('msg bot','⚠️ '+ev.text);}
@@ -128,8 +136,12 @@ async function send(){
   }catch(e){el('msg bot','⚠️ Connection error.');}
   typing.remove?.(); finish();
 }
+function postChat(text){
+  let pass='';try{pass=sessionStorage.getItem('compass_pass')||''}catch(e){}
+  return fetch('/chat',{method:'POST',headers:{'Content-Type':'application/json','X-Demo-Passcode':pass},body:JSON.stringify({message:text,session_id:sessionId})});
+}
 function finish(){busy=false;document.getElementById('sendbtn').disabled=false;refreshGov();}
-el('msg bot', marked.parse("Welcome. **I am a read-only advisory agent (Tier 1 on the governance ladder I teach)** — I cannot take actions on any system, by architecture, not by promise.\n\nPick a card above, or ask me anything about building enterprise AI agents the right way."));
+el('msg bot', md("Welcome. **I am a read-only advisory agent (Tier 1 on the governance ladder I teach)** — I cannot take actions on any system, by architecture, not by promise.\n\nPick a card above, or ask me anything about building enterprise AI agents the right way."));
 </script>
 </body>
 </html>
