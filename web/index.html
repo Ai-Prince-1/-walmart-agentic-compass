@@ -103,7 +103,12 @@ async function send(){
   const typing=el('typing','Consulting the corpus…');
   let badge=null, bubble=null, buffer='';
   try{
-    const resp=await fetch('/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:text,session_id:sessionId})});
+    let resp=await postChat(text);
+    if(resp.status===401){
+      const code=window.prompt('This demo is passcode-protected. Enter the passcode you were given:');
+      if(code){try{sessionStorage.setItem('compass_pass',code.trim())}catch(e){} resp=await postChat(text);}
+      if(resp.status===401){typing.remove();el('msg bot','🔒 A valid demo passcode is needed to chat. Ask the project owner for one.');try{sessionStorage.removeItem('compass_pass')}catch(e){} finish();return;}
+    }
     if(resp.status===429){const j=await resp.json();typing.remove();el('msg bot','⚡ '+j.error);finish();return;}
     const reader=resp.body.getReader(); const dec=new TextDecoder(); let carry='';
     while(true){
@@ -130,6 +135,10 @@ async function send(){
     }
   }catch(e){el('msg bot','⚠️ Connection error.');}
   typing.remove?.(); finish();
+}
+function postChat(text){
+  let pass='';try{pass=sessionStorage.getItem('compass_pass')||''}catch(e){}
+  return fetch('/chat',{method:'POST',headers:{'Content-Type':'application/json','X-Demo-Passcode':pass},body:JSON.stringify({message:text,session_id:sessionId})});
 }
 function finish(){busy=false;document.getElementById('sendbtn').disabled=false;refreshGov();}
 el('msg bot', md("Welcome. **I am a read-only advisory agent (Tier 1 on the governance ladder I teach)** — I cannot take actions on any system, by architecture, not by promise.\n\nPick a card above, or ask me anything about building enterprise AI agents the right way."));

@@ -88,3 +88,14 @@ def test_empty_chat_message_rejected():
     main._ip_hits.clear()
     r = TestClient(main.app).post("/chat", json={"message": "   "})
     assert r.status_code == 400
+
+
+def test_passcode_required_when_configured(monkeypatch):
+    monkeypatch.setattr(main, "DEMO_PASSCODE", "open-sesame")
+    main._ip_hits.clear()
+    c = TestClient(main.app)
+    assert c.post("/chat", json={"message": "hi"}).status_code == 401
+    assert c.post("/chat", json={"message": "hi"}, headers={"X-Demo-Passcode": "wrong"}).status_code == 401
+    # Right passcode gets past the gate (an empty message is then rejected with 400, no model call)
+    ok = c.post("/chat", json={"message": " "}, headers={"X-Demo-Passcode": "open-sesame"})
+    assert ok.status_code == 400

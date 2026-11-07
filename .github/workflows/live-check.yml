@@ -1,0 +1,27 @@
+name: Monthly live demo check
+# Wakes the live demo and confirms the Gemini key still works.
+# If it fails, GitHub emails you, so you find out before a demo, not during one.
+# Cost: one free-tier model request per month.
+on:
+  schedule:
+    - cron: "23 14 1 * *"   # 14:23 UTC on the 1st of each month
+  workflow_dispatch:
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check the live agent
+        env:
+          URL: ${{ vars.COMPASS_LIVE_URL }}
+          PASS: ${{ secrets.COMPASS_DEMO_PASSCODE }}
+        run: |
+          if [ -z "$URL" ]; then echo "COMPASS_LIVE_URL is not set yet; nothing to check."; exit 0; fi
+          URL="${URL%/}"
+          echo "1) Service is up"
+          curl -fsS --retry 3 --retry-delay 10 --max-time 60 "$URL/governance" > /dev/null
+          echo "2) Model answers (verifies the API key)"
+          curl -sS --max-time 120 -X POST "$URL/chat" \
+            -H 'Content-Type: application/json' -H "X-Demo-Passcode: $PASS" \
+            -d '{"message":"In one sentence, what is the read/draft/act ladder?"}' > reply.txt
+          if grep -q '"type": "text"' reply.txt; then echo "OK: the live demo answered."; else
+            echo "The live demo did not answer. Response:"; head -c 800 reply.txt; exit 1; fi
